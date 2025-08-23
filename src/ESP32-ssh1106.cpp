@@ -96,7 +96,8 @@ void drawTime(const struct tm* timeinfo) {
 bool syncTime() {
   Serial.println("NTP-Sync starten…");
   showStatus("WLAN einschalten…");
-
+  WiFi.disconnect(true, true);   // trennt und löscht alte Settings
+  delay(100);
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
 
