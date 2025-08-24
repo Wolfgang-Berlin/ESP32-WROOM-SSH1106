@@ -1,18 +1,15 @@
 /**
- * @file ESP32-ssh1106.cpp
- * @brief ESP32 Deep-Sleep Clock with NTP Synchronization and OLED Display
+
+ * @file ESP32-Clock-Display.cpp
+ * @brief ESP32 Clock mit NTP Sync einmal täglich, Modem-Sleep und OLED-Anzeige
  *
- * This program implements a low-power clock using an ESP32 microcontroller, an SH1106 OLED display, and NTP for time synchronization.
+ * - NTP-Sync beim Start + jeden Tag um 05:00 Uhr
+ * - WLAN danach ausschalten, Energiesparen mit Modem-Sleep
+ * - Anzeige jede Minute von 06:00–22:00 Uhr
+ * - Anzeige aus zwischen 22:00–06:00 Uhr
+ *
+ * Hardware: ESP32 + SH1106 OLED (U8g2)
  * 
- * Features:
- * - Connects to WiFi for NTP time sync, then disconnects to save power.
- * - Displays current time on OLED using U8g2 library.
- * - Enters deep sleep mode during night hours (22:00–06:00) and wakes up at 06:00.
- * - Uses Berlin/Europe timezone with DST support.
- * - OLED display is turned off during sleep and wakes up to show time.
- * - WiFi is only enabled for synchronization, then disabled for power saving.
- * - Modem sleep is enabled for further power reduction.
- *
  * Dependencies:
  * - Arduino core for ESP32
  * - U8g2 library for OLED display
@@ -60,26 +57,26 @@ U8G2_SH1106_128X64_NONAME_F_HW_I2C oled(U8G2_R2);
 #define TIMEZONE "CET-1CEST,M3.5.0/02,M10.5.0/03"
 
 static int lastDisplayedMinute = -1; 
+static int lastSyncDay = -1;
 
-// --- WLAN trennen ---
+// --- WiFi sauber trennen ---
 void disconnectWiFi() {
-  WiFi.disconnect(true);
+  WiFi.disconnect(true, true);
   WiFi.mode(WIFI_OFF);
-  Serial.println("WLAN getrennt");
+  Serial.println("WLAN aus");
 }
 
-// --- Statusanzeige ---
+// --- OLED Statusmeldung ---
 void showStatus(const char* msg) {
   oled.setPowerSave(0);
-  oled.begin();
   oled.clearBuffer();
-  oled.setContrast(64);   // Helligkeit
+  oled.setContrast(64);
   oled.setFont(u8g2_font_courR08_tr);
   oled.drawStr(0, 60, msg);
   oled.sendBuffer();
 }
 
-// --- Uhrzeit anzeigen ---
+// --- Zeit anzeigen ---
 void drawTime(const struct tm* timeinfo) {
   char timeStr[6];
   strftime(timeStr, sizeof(timeStr), "%H:%M", timeinfo);
@@ -88,21 +85,20 @@ void drawTime(const struct tm* timeinfo) {
   oled.setFont(u8g2_font_logisoso42_tr);
   oled.drawStr(1, 52, timeStr);
   oled.sendBuffer();
-  Serial.print("Anzeige: ");
-  Serial.println(timeStr);
+  Serial.printf("Anzeige: %s\n", timeStr);
 }
 
-// --- Zeit mit NTP synchronisieren ---
+// --- NTP Synchronisation ---
 bool syncTime() {
   Serial.println("NTP-Sync starten…");
-  showStatus("WLAN einschalten…");
-  WiFi.disconnect(true, true);   // trennt und löscht alte Settings
-  delay(100);
+  showStatus("WLAN an…");
+
+  WiFi.disconnect(true, true);
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
 
   unsigned long t0 = millis();
-  while (WiFi.status() != WL_CONNECTED && millis() - t0 < 15000) {
+  while (WiFi.status() != WL_CONNECTED && millis() - t0 < 20000) {
     delay(250);
   }
   if (WiFi.status() != WL_CONNECTED) {
@@ -113,17 +109,15 @@ bool syncTime() {
   }
 
   Serial.println("WLAN verbunden");
-  showStatus("WLAN verbunden");
+  showStatus("NTP Sync…");
 
-  Serial.println("Starte NTP-Sync…");
-  showStatus("NTP-Sync…");
   configTzTime(TIMEZONE, "pool.ntp.org", "time.nist.gov", "time.google.com");
   tzset();
 
   time_t now = 0;
   struct tm ti = {0};
   bool ok = false;
-  for (int i = 0; i < 30; ++i) {
+  for (int i = 0; i < 60; ++i) {
     time(&now);
     localtime_r(&now, &ti);
     if (ti.tm_year >= (2024 - 1900)) { ok = true; break; }
@@ -131,58 +125,37 @@ bool syncTime() {
   }
 
   if (!ok) {
-    Serial.println("NTP-Sync fehlgeschlagen");
+    Serial.println("NTP fehlgeschlagen");
     showStatus("NTP fehlgeschlagen");
     disconnectWiFi();
     return false;
   }
 
-  Serial.println("NTP-Sync erfolgreich");
-  showStatus("Zeit OK, WLAN aus");
-  disconnectWiFi();
+  Serial.print("Neue Uhrzeit: ");
+  Serial.println(asctime(&ti));
+  showStatus("Zeit OK");
+  delay(1000);
 
-  lastDisplayedMinute = -1;
-  drawTime(&ti);
+  disconnectWiFi();
+  lastSyncDay = ti.tm_yday;
 
   return true;
-}
-
-// --- Deep-Sleep bis 06:00 ---
-void sleepUntilSix(const struct tm* nowLocal) {
-  oled.setPowerSave(1); // Display aus
-  Serial.println("Nachtruhe: Deep-Sleep bis 06:00…");
-
-
-  struct tm wake = *nowLocal;
-  if (wake.tm_hour >= 22) {
-    wake.tm_mday += 1;
-  }
-  wake.tm_hour = 6;
-  wake.tm_min  = 0;
-  wake.tm_sec  = 0;
-
-  time_t nowEpoch  = mktime((struct tm*)nowLocal);
-  time_t wakeEpoch = mktime(&wake);
-  uint64_t sleepSeconds = (uint64_t)difftime(wakeEpoch, nowEpoch);
-  if (sleepSeconds < 1) sleepSeconds = 1;
-
-  esp_sleep_enable_timer_wakeup(sleepSeconds * 1000000ULL);
-  esp_deep_sleep_start();
 }
 
 // --- Setup ---
 void setup() {
   Serial.begin(115200);
   oled.begin();
+  oled.setPowerSave(0);
 
-  // NTP-Sync beim Start (z. B. morgens nach Deep-Sleep)
+  // erster NTP-Sync beim Start
   syncTime();
+
+  // Energiesparmodus
   setCpuFrequencyMhz(20);
-  // Modem-Sleep aktivieren (WLAN ist ja aus, CPU läuft energiesparend)
   WiFi.setSleep(true);
   esp_wifi_set_ps(WIFI_PS_MIN_MODEM);
 }
-
 
 // --- Loop ---
 void loop() {
@@ -190,18 +163,25 @@ void loop() {
   struct tm nowLocal;
   localtime_r(&now, &nowLocal);
 
-  // Nachtruhe 22–06 → Deep-Sleep
-  if (nowLocal.tm_hour >= 22 || nowLocal.tm_hour < 6) {
-    sleepUntilSix(&nowLocal);
-    return;
+  // Einmal täglich um 05:00 → Zeit synchronisieren
+  if (nowLocal.tm_hour == 5 && lastSyncDay != nowLocal.tm_yday) {
+    if (syncTime()) {
+      Serial.println("Täglicher NTP-Sync erledigt");
+    }
   }
 
-  // Minutenanzeige
-  if (nowLocal.tm_min != lastDisplayedMinute) { 
-    drawTime(&nowLocal);
-    lastDisplayedMinute = nowLocal.tm_min;
+  // Anzeige nur zwischen 06:00 und 21:59
+  if (nowLocal.tm_hour >= 6 && nowLocal.tm_hour < 22) {
+    oled.setPowerSave(0);
+    if (nowLocal.tm_min != lastDisplayedMinute) {
+      drawTime(&nowLocal);
+      lastDisplayedMinute = nowLocal.tm_min;
+    }
+  } else {
+    // Display aus in der Nacht
+    oled.setPowerSave(1);
+    lastDisplayedMinute = -1;
   }
 
-  // Modem-Sleep-Phase → nur kleine Pause
-  delay(1000);
+  delay(1000); // 1 s Pause
 }
