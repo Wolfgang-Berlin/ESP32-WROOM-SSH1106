@@ -18,23 +18,23 @@
  * - secrets.h for WiFi credentials
  *
  * 
- * Author: Your Name
+ * Author: Wolfgang-Berlin
  * License: MIT License
- * Date: 21-08-2025
+ * Date: 24-08-2025
  
 
-                |    |
-                |    |
-          -                 -
-          -                 -
-          -                 -   + 3.3 V
-    GND   -                 -   
-          -  D1 Mini ESP32  -
-          -                 -
-    SDA   -                 -
-    SCK   -                 -
-          -                 -
-          -                 -
+                 |    |
+                 |    |
+  -        -      ----       -          -
+  -        -                 -          -
+  -        -                 - + 3.3 V  -
+  -    GND -                 -          -
+  -        -  D1 Mini ESP32  -          -
+  -        -                 -          -
+  -    SDA -                 -          -
+  -    SCK -                 -          -
+  -        -                 -          -
+  -        -                 -          -
 
 
 */
