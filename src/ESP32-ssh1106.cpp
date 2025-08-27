@@ -90,10 +90,13 @@ void drawTime(const struct tm* timeinfo) {
 
 // --- NTP Synchronisation ---
 bool syncTime() {
+
   Serial.println("NTP-Sync starten…");
   showStatus("WLAN an…");
+  esp_wifi_set_ps(WIFI_PS_NONE); // aufwachen - WLAN volle Leistung (kein Sleep)
+  delay(200);
+  // WiFi.disconnect(true, true);
 
-  WiFi.disconnect(true, true);
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
 
@@ -164,11 +167,14 @@ void loop() {
   localtime_r(&now, &nowLocal);
 
   // Einmal täglich um 05:00 → Zeit synchronisieren
-  if (nowLocal.tm_hour == 5 && lastSyncDay != nowLocal.tm_yday) {
+  if (nowLocal.tm_hour == 5 && nowLocal.tm_min < 5 && lastSyncDay != nowLocal.tm_yday) {
     if (syncTime()) {
-      Serial.println("Täglicher NTP-Sync erledigt");
-    }
+        Serial.println("Täglicher NTP-Sync erfolgreich");
+        } else {
+            Serial.println("Täglicher NTP-Sync fehlgeschlagen, neuer Versuch in 5 Min");
+        }
   }
+
 
   // Anzeige nur zwischen 06:00 und 21:59
   if (nowLocal.tm_hour >= 6 && nowLocal.tm_hour < 22) {
