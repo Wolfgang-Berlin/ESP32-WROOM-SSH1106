@@ -15,12 +15,15 @@
  * - U8g2 library for OLED display
  *           https://github.com/olikraus/u8g2/wiki/fntlistallplain#u8g2-font-list
  * - WiFi library for network connectivity
- * - secrets.h for WiFi credentials
- *
+ * - create file "secrets.h" for WiFi credentials
+ * 
+ *          #define SECRET_SSID "..."		  // replace MySSID with your WiFi network name
+            #define SECRET_PASS "XXXXXX"	// replace MyPassword with your WiFi password
+
  * 
  * Author: Wolfgang-Berlin
  * License: MIT License
- * Date: 24-08-2025
+ * Date: 29-08-2025
  
 
                  |    |
