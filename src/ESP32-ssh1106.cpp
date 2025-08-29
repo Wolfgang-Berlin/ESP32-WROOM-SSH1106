@@ -194,20 +194,20 @@ void loop() {
   }
     oled.setPowerSave(0);
     if (nowLocal.tm_min != lastDisplayedMinute) {
-      drawTime(&nowLocal);
+      // drawTime(&nowLocal);
       lastDisplayedMinute = nowLocal.tm_min;
     }
 
 
   if (nowLocal.tm_hour >= Schlafenszeit_Ende && nowLocal.tm_hour < Schlafenszeit_Start) {
     oled.setPowerSave(0);
-    if (nowLocal.tm_min != lastDisplayedMinute) {
+    if (nowLocal.tm_min != lastDisplayedMinute) { 
       drawTime(&nowLocal);
       lastDisplayedMinute = nowLocal.tm_min;
     }
   } else {
     // Display aus in der Nacht
-    oled.setPowerSave(1);
+    oled.setPowerSave(1); // Display aus
     lastDisplayedMinute = -1;
   }
 
