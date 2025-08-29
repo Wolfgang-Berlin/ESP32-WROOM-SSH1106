@@ -31,8 +31,8 @@
   -    GND -                 -          -
   -        -  D1 Mini ESP32  -          -
   -        -                 -          -
-  -    SDA -                 -          -
-  -    SCK -                 -          -
+  -    SDA -  GPIO 21        -          -
+  -    SCK -  GPIO 22        -          -
   -        -                 -          -
   -        -                 -          -
 
@@ -48,10 +48,13 @@
 #include "esp_wifi.h"
 #include <time.h>
 
+# define oled_CLK 22
+# define oled_SDA 21
+
 const char *ssid = SECRET_SSID;
 const char *password = SECRET_PASS;
 
-U8G2_SH1106_128X64_NONAME_F_HW_I2C oled(U8G2_R2);
+U8G2_SH1106_128X64_NONAME_F_HW_I2C oled(U8G2_R2, oled_CLK, oled_SDA,/* reset=*/ U8X8_PIN_NONE);
 
 // Berlin/Europa mit DST
 #define TIMEZONE "CET-1CEST,M3.5.0/02,M10.5.0/03"
@@ -59,7 +62,7 @@ U8G2_SH1106_128X64_NONAME_F_HW_I2C oled(U8G2_R2);
 static int lastDisplayedMinute = -1; 
 static int lastSyncDay = -1;
 
-// --- WiFi sauber trennen ---
+// --- WiFi trennen ---
 void disconnectWiFi() {
   WiFi.disconnect(true, true);
   WiFi.mode(WIFI_OFF);
