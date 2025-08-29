@@ -8,4 +8,4 @@ Teile:
 ![](Bilder/OLED-Display-modul-SH1106.png)
 
 
-![](D1_Mini_ESP32_-_pinout.pdf)
+![](D1_mini_ESP32_pinout.jpg)
