@@ -1,6 +1,6 @@
 
 
-Es geht um eine Uhr, bei der währen der Schlafenszeit, das Display ausgeschlten wird.
+Es geht um eine Uhr, bei der währen der Schlafenszeit, das Display ausgeschlaten wird.
 
 Teile: 
 
@@ -9,3 +9,7 @@ Teile:
 
 
 ![](Bilder/D1_mini_ESP32_pinout.jpg)
+
+
+Um 4:30 Uhr wird die zeit über einen NTP-Server synchronisiert. in der restlichen Zeit ist Wlan abgeschaltet und der ESP32 geht in modem_sleep.
+
