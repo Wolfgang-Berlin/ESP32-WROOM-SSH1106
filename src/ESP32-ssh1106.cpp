@@ -54,7 +54,7 @@
 const char *ssid = SECRET_SSID;
 const char *password = SECRET_PASS;
 
-U8G2_SH1106_128X64_NONAME_F_HW_I2C oled(U8G2_R2, oled_CLK, oled_SDA,/* reset=*/ U8X8_PIN_NONE);
+U8G2_SH1106_128X64_NONAME_F_HW_I2C oled(U8G2_R2, /* reset=*/ U8X8_PIN_NONE, /* clock=*/ oled_CLK, /* data=*/ oled_SDA); // SH1106 128x64 via I2C
 
 // Berlin/Europa mit DST
 #define TIMEZONE "CET-1CEST,M3.5.0/02,M10.5.0/03"
@@ -84,7 +84,7 @@ void drawTime(const struct tm* timeinfo) {
   char timeStr[6];
   strftime(timeStr, sizeof(timeStr), "%H:%M", timeinfo);
   oled.clearBuffer();
-  oled.setContrast(32);
+  oled.setContrast(30);
   oled.setFont(u8g2_font_logisoso42_tr);
   oled.drawStr(1, 52, timeStr);
   oled.sendBuffer();
@@ -97,6 +97,7 @@ bool syncTime() {
   Serial.println("NTP-Sync starten…");
   showStatus("WLAN an…");
   esp_wifi_set_ps(WIFI_PS_NONE); // aufwachen - WLAN volle Leistung (kein Sleep)
+  setCpuFrequencyMhz(160); // CPU auf 160 MHz
   delay(200);
   // WiFi.disconnect(true, true);
 
@@ -143,7 +144,9 @@ bool syncTime() {
   delay(1000);
 
   disconnectWiFi();
-  lastSyncDay = ti.tm_yday;
+  setCpuFrequencyMhz(40); // wieder auf 40 MHz runter, spart Strom
+  WiFi.setSleep(true);
+  esp_wifi_set_ps(WIFI_PS_MIN_MODEM); // Modem-Sleep
 
   return true;
 }
@@ -156,31 +159,44 @@ void setup() {
 
   // erster NTP-Sync beim Start
   syncTime();
-
+  delay(500);
   // Energiesparmodus
-  setCpuFrequencyMhz(20);
-  WiFi.setSleep(true);
-  esp_wifi_set_ps(WIFI_PS_MIN_MODEM);
+
 }
 
 // --- Loop ---
+
+static bool syncDoneThisMinute = false;
+#define Sync_Stunde 4         // rechtzeitig vor 6 Uhr synchronisieren: Zeitumstellung muss so nicht beachtet werden
+#define Sync_Min    30
+#define Schlafenszeit_Start 22 // 22:00 Uhr
+#define Schlafenszeit_Ende 6   // 06:00 Uhr
+
 void loop() {
   time_t now = time(nullptr);
   struct tm nowLocal;
   localtime_r(&now, &nowLocal);
 
-  // Einmal täglich um 05:00 → Zeit synchronisieren
-  if (nowLocal.tm_hour == 5 && nowLocal.tm_min < 5 && lastSyncDay != nowLocal.tm_yday) {
-    if (syncTime()) {
+   if (nowLocal.tm_hour == Sync_Stunde && nowLocal.tm_min == Sync_Min && !syncDoneThisMinute ) {
+    
+      if (syncTime()) {
         Serial.println("Täglicher NTP-Sync erfolgreich");
-        } else {
+      } else {
             Serial.println("Täglicher NTP-Sync fehlgeschlagen, neuer Versuch in 5 Min");
         }
+      syncDoneThisMinute = true;
   }
+  if (nowLocal.tm_min != Sync_Min) {
+    syncDoneThisMinute = false;
+  }
+    oled.setPowerSave(0);
+    if (nowLocal.tm_min != lastDisplayedMinute) {
+      drawTime(&nowLocal);
+      lastDisplayedMinute = nowLocal.tm_min;
+    }
 
 
-  // Anzeige nur zwischen 06:00 und 21:59
-  if (nowLocal.tm_hour >= 6 && nowLocal.tm_hour < 22) {
+  if (nowLocal.tm_hour >= Schlafenszeit_Ende && nowLocal.tm_hour < Schlafenszeit_Start) {
     oled.setPowerSave(0);
     if (nowLocal.tm_min != lastDisplayedMinute) {
       drawTime(&nowLocal);
