@@ -3,7 +3,7 @@
  * @file ESP32-Clock-Display.cpp
  * @brief ESP32 Clock mit NTP Sync einmal täglich, Modem-Sleep und OLED-Anzeige
  *
- * - NTP-Sync beim Start + jeden Tag um 05:00 Uhr
+ * - NTP-Sync beim Start + jeden Tag um 04:30 Uhr
  * - WLAN danach ausschalten, Energiesparen mit Modem-Sleep
  * - Anzeige jede Minute von 06:00–22:00 Uhr
  * - Anzeige aus zwischen 22:00–06:00 Uhr
