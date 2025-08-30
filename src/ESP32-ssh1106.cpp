@@ -85,13 +85,14 @@ void showStatus(const char* msg) {
 // --- Zeit anzeigen ---
 void drawTime(const struct tm* timeinfo) {
   char timeStr[6];
-  strftime(timeStr, sizeof(timeStr), "%H:%M", timeinfo);
+  oled.setPowerSave(0);
   oled.clearBuffer();
+  strftime(timeStr, sizeof(timeStr), "%H:%M", timeinfo);
   oled.setContrast(30);
   oled.setFont(u8g2_font_logisoso42_tr);
   oled.drawStr(1, 52, timeStr);
   oled.sendBuffer();
-  Serial.printf("Anzeige: %s\n", timeStr);
+  // Serial.printf("Anzeige: %s\n", timeStr);
 }
 
 // --- NTP Synchronisation ---
@@ -141,8 +142,6 @@ bool syncTime() {
     return false;
   }
 
-  Serial.print("Neue Uhrzeit: ");
-  Serial.println(asctime(&ti));
   showStatus("Zeit OK");
   delay(1000);
 
@@ -158,12 +157,15 @@ bool syncTime() {
 void setup() {
   Serial.begin(115200);
   oled.begin();
-  oled.setPowerSave(0);
-
+  oled.setPowerSave(0); // Display an
+  oled.setContrast(64);
+  oled.clearBuffer();
+ if (WiFi.status() == WL_CONNECTED) {
+    showStatus("NTP-Sync…");
+  }
   // erster NTP-Sync beim Start
   syncTime();
   delay(500);
-  // Energiesparmodus
 
 }
 
@@ -173,14 +175,14 @@ static bool syncDoneThisMinute = false;
 #define Sync_Stunde 4         // rechtzeitig vor 6 Uhr synchronisieren: Zeitumstellung muss so nicht beachtet werden
 #define Sync_Min    30
 #define Schlafenszeit_Start 22 // 22:00 Uhr
-#define Schlafenszeit_Ende 6   // 06:00 Uhr
+#define Schlafenszeit_Ende   6   // 06:00 Uhr
 
 void loop() {
   time_t now = time(nullptr);
   struct tm nowLocal;
   localtime_r(&now, &nowLocal);
 
-   if (nowLocal.tm_hour == Sync_Stunde && nowLocal.tm_min == Sync_Min && !syncDoneThisMinute ) {
+   if (nowLocal.tm_hour >= Sync_Stunde && nowLocal.tm_min == Sync_Min && !syncDoneThisMinute ) {
     
       if (syncTime()) {
         Serial.println("Täglicher NTP-Sync erfolgreich");
@@ -192,23 +194,22 @@ void loop() {
   if (nowLocal.tm_min != Sync_Min) {
     syncDoneThisMinute = false;
   }
-    oled.setPowerSave(0);
-    if (nowLocal.tm_min != lastDisplayedMinute) {
-      // drawTime(&nowLocal);
-      lastDisplayedMinute = nowLocal.tm_min;
-    }
 
-
-  if (nowLocal.tm_hour >= Schlafenszeit_Ende && nowLocal.tm_hour < Schlafenszeit_Start) {
-    oled.setPowerSave(0);
+  if (nowLocal.tm_hour >= 22 && nowLocal.tm_hour < 6) {
+    // Zwischen 22:00 und 06:00 Uhr
     if (nowLocal.tm_min != lastDisplayedMinute) { 
-      drawTime(&nowLocal);
+      oled.setPowerSave(1); 
       lastDisplayedMinute = nowLocal.tm_min;
     }
   } else {
-    // Display aus in der Nacht
-    oled.setPowerSave(1); // Display aus
-    lastDisplayedMinute = -1;
+    // Tageszeit 06:00–22:00 Uhr
+    oled.setPowerSave(0);
+    if (nowLocal.tm_min != lastDisplayedMinute) { //
+      drawTime(&nowLocal);
+      Serial.printf("Neue Minute:");
+      lastDisplayedMinute = nowLocal.tm_min;
+    }
+    
   }
 
   delay(1000); // 1 s Pause
