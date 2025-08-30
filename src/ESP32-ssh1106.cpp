@@ -174,15 +174,15 @@ void setup() {
 static bool syncDoneThisMinute = false;
 #define Sync_Stunde 4         // rechtzeitig vor 6 Uhr synchronisieren: Zeitumstellung muss so nicht beachtet werden
 #define Sync_Min    30
-#define Schlafenszeit_Start 22 // 22:00 Uhr
-#define Schlafenszeit_Ende   6   // 06:00 Uhr
+const int sleepTime_Start = 22;  // 22:00 Uhr
+const int sleepTime_End  =  6;   // 06:00 Uhr
 
 void loop() {
   time_t now = time(nullptr);
   struct tm nowLocal;
   localtime_r(&now, &nowLocal);
 
-   if (nowLocal.tm_hour >= Sync_Stunde && nowLocal.tm_min == Sync_Min && !syncDoneThisMinute ) {
+   if (nowLocal.tm_hour >= Sync_Stunde && nowLocal.tm_min == Sync_Min && !syncDoneThisMinute ) { //
     
       if (syncTime()) {
         Serial.println("Täglicher NTP-Sync erfolgreich");
@@ -195,7 +195,7 @@ void loop() {
     syncDoneThisMinute = false;
   }
 
-  if (nowLocal.tm_hour >= 22 && nowLocal.tm_hour < 6) {
+  if (nowLocal.tm_hour >= sleepTime_Start && nowLocal.tm_hour < sleepTime_End) {
     // Zwischen 22:00 und 06:00 Uhr
     if (nowLocal.tm_min != lastDisplayedMinute) { 
       oled.setPowerSave(1); 
