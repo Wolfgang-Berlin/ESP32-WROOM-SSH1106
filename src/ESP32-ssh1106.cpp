@@ -195,7 +195,7 @@ void loop() {
     syncDoneThisMinute = false;
   }
 
-  if (nowLocal.tm_hour >= 22 && nowLocal.tm_hour < 6) {
+  if (nowLocal.tm_hour >= sleepTime_Start && nowLocal.tm_hour < sleepTime_End) {
     // Zwischen 22:00 und 06:00 Uhr
     if (nowLocal.tm_min != lastDisplayedMinute) { 
       oled.setPowerSave(1); 
