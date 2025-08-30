@@ -195,7 +195,7 @@ void loop() {
     syncDoneThisMinute = false;
   }
 
-  if (nowLocal.tm_hour >= sleepTime_Start && nowLocal.tm_hour < sleepTime_End) {
+  if (nowLocal.tm_hour >= 22 && nowLocal.tm_hour < 6) {
     // Zwischen 22:00 und 06:00 Uhr
     if (nowLocal.tm_min != lastDisplayedMinute) { 
       oled.setPowerSave(1); 
@@ -205,8 +205,8 @@ void loop() {
     // Tageszeit 06:00–22:00 Uhr
     oled.setPowerSave(0);
     if (nowLocal.tm_min != lastDisplayedMinute) { //
-      drawTime(&nowLocal);
-      Serial.printf("Neue Minute:");
+      oled.clearBuffer();
+      oled.sendBuffer();
       lastDisplayedMinute = nowLocal.tm_min;
     }
     
