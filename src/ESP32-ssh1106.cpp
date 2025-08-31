@@ -92,7 +92,6 @@ void drawTime(const struct tm* timeinfo) {
   oled.setFont(u8g2_font_logisoso42_tr);
   oled.drawStr(1, 52, timeStr);
   oled.sendBuffer();
-  // Serial.printf("Anzeige: %s\n", timeStr);
 }
 
 // --- NTP Synchronisation ---
@@ -103,7 +102,6 @@ bool syncTime() {
   esp_wifi_set_ps(WIFI_PS_NONE); // aufwachen - WLAN volle Leistung (kein Sleep)
   setCpuFrequencyMhz(160); // CPU auf 160 MHz
   delay(200);
-  // WiFi.disconnect(true, true);
 
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
@@ -160,13 +158,12 @@ void setup() {
   oled.setPowerSave(0); // Display an
   oled.setContrast(64);
   oled.clearBuffer();
- if (WiFi.status() == WL_CONNECTED) {
+  if (WiFi.status() == WL_CONNECTED) {
     showStatus("NTP-Sync…");
   }
   // erster NTP-Sync beim Start
   syncTime();
   delay(500);
-
 }
 
 // --- Loop ---
