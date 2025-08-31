@@ -175,7 +175,7 @@ static bool syncDoneThisMinute = false;
 #define Sync_Stunde 4         // rechtzeitig vor 6 Uhr synchronisieren: Zeitumstellung muss so nicht beachtet werden
 #define Sync_Min    30
 const int sleepTime_Start = 22;  // 22:00 Uhr
-const int sleepTime_End  =  6;   // 06:00 Uhr
+const int sleepTime_End  =  5;   // 06:00 Uhr
 
 void loop() {
   time_t now = time(nullptr);
@@ -195,22 +195,22 @@ void loop() {
     syncDoneThisMinute = false;
   }
 
-  if (nowLocal.tm_hour >= sleepTime_Start && nowLocal.tm_hour < sleepTime_End) {
+  if (nowLocal.tm_hour >= sleepTime_Start || nowLocal.tm_hour < sleepTime_End) {
     // Zwischen 22:00 und 06:00 Uhr
-    if (nowLocal.tm_min != lastDisplayedMinute) { 
-      oled.setPowerSave(1); 
-      lastDisplayedMinute = nowLocal.tm_min;
-    }
-  } else {
-    // Tageszeit 06:00–22:00 Uhr
-    oled.setPowerSave(0);
-    if (nowLocal.tm_min != lastDisplayedMinute) { //
-      oled.clearBuffer();
-      oled.sendBuffer();
-      lastDisplayedMinute = nowLocal.tm_min;
-    }
-    
-  }
+      if (nowLocal.tm_min != lastDisplayedMinute) { //
+          oled.setPowerSave(1); 
+          oled.clearBuffer();
+          oled.sendBuffer();
+          lastDisplayedMinute = nowLocal.tm_min;
+      }
 
+    } else {
+    // Tageszeit 06:00–22:00 Uhr
+      oled.setPowerSave(0);
+      if (nowLocal.tm_min != lastDisplayedMinute) { 
+          drawTime(&nowLocal);
+          lastDisplayedMinute = nowLocal.tm_min;
+      }  
+  }
   delay(1000); // 1 s Pause
 }
