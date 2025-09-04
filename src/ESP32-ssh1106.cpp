@@ -60,7 +60,7 @@ const char *password = SECRET_PASS;
 U8G2_SH1106_128X64_NONAME_F_HW_I2C oled(U8G2_R2, /* reset=*/ U8X8_PIN_NONE, /* clock=*/ oled_CLK, /* data=*/ oled_SDA); // SH1106 128x64 via I2C
 
 // Berlin/Europa mit DST
-#define TIMEZONE "CET-1CEST,M3.5.0/02,M10.5.0/03"
+#define TIMEZONE "CET-1CEST,M3.5.0/02,M10.5.0/3"
 
 static int lastDisplayedMinute = -1; 
 static int lastSyncDay = -1;
@@ -120,7 +120,7 @@ bool syncTime() {
   Serial.println("WLAN verbunden");
   showStatus("NTP Sync…");
 
-  configTzTime(TIMEZONE, "pool.ntp.org", "time.nist.gov", "time.google.com");
+  configTzTime(TIMEZONE, "de.pool.ntp.org");
   tzset();
 
   time_t now = 0;
@@ -172,7 +172,7 @@ static bool syncDoneThisMinute = false;
 #define Sync_Stunde 4         // rechtzeitig vor 6 Uhr synchronisieren: Zeitumstellung muss so nicht beachtet werden
 #define Sync_Min    30
 const int sleepTime_Start = 22;  // 22:00 Uhr
-const int sleepTime_End  =  5;   // 06:00 Uhr
+const int sleepTime_End  =  6;   // 06:00 Uhr
 
 void loop() {
   time_t now = time(nullptr);
